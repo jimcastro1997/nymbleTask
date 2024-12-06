@@ -11,6 +11,7 @@ Program Created by Jim Castro Soman
 
 #define BaudRate 2400
 #define EEPROM_SIZE 1024 // Atmega328p EEPROM Size
+bool memory = false; // momory leak flag
 
 // UART init
 void uart_init(unsigned int baud) 
@@ -43,10 +44,17 @@ int main()
   unsigned char received_char;
   int eeprom_address = 0;  // EEPROM address counter
 
-  // Receive data from PC and store in EEPROM
+  // Receive data and store in EEPROM
   while (1) 
   {
     received_char = uart_receive(); 
+
+    if (eeprom_address >= EEPROM_SIZE) // Check EEPROM
+    {  
+      memory = true; // If Full make memory flag true
+      break;  // Stop receiving data
+    }
+
     eeprom_write_byte((uint8_t *)eeprom_address, received_char); // Write in EEPROM from 0 address
     eeprom_address++;
     if (received_char == '#') // '#' char - for end of message 
@@ -57,15 +65,30 @@ int main()
 
   // Send Data Back to PC
   eeprom_address = 0; // Reset EEPROM address to start reading
-  while (1) // Check for EEPROM Full
+  while (memory == false) // Check for EEPROM Full
   {
     received_char = eeprom_read_byte((uint8_t *)eeprom_address);
     uart_transmit(received_char);
     eeprom_address++;
     if (received_char == '#') // End of message
     { 
+    for (uint16_t i = 0; i < eeprom_address; i++) 
+    {
+      eeprom_write_byte((uint8_t *)i, 0xFF); // Clear memory after sending data - this part is not required since it automatically overwrites when next message is received
+    }
     break;
     }
   }
+
+
+  if(memory == true) // If EEPROM Full - Send '$' for PC to show warning message & then clear EEPROM
+  {
+  uart_transmit('$');
+  for (uint16_t i = 0; i < eeprom_address; i++) 
+  {
+    eeprom_write_byte((uint8_t *)i, 0xFF); // Clear EEPROM from address 0
+  }
+  }
+
   return 0;
 }

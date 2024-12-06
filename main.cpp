@@ -1,4 +1,3 @@
-
 /*
 This program is a UART Communication Task, that send and receive data between Atmega328p and PC.
 This task is created for Nymble Firmware Engineer Role Assignment
@@ -39,8 +38,6 @@ unsigned char uart_receive(void)
 
 int main() 
 {
-  DDRB |= (1 << PB5); // LED Notification config
-
   uart_init(BaudRate); // UART init 
 
   unsigned char received_char;
@@ -54,10 +51,21 @@ int main()
     eeprom_address++;
     if (received_char == '#') // '#' char - for end of message 
     {
-    PORTB |= (1 << PB5); // Turn Led 13 ON for Message Received Notification
     break;  
     }
   }
 
+  // Send Data Back to PC
+  eeprom_address = 0; // Reset EEPROM address to start reading
+  while (1) // Check for EEPROM Full
+  {
+    received_char = eeprom_read_byte((uint8_t *)eeprom_address);
+    uart_transmit(received_char);
+    eeprom_address++;
+    if (received_char == '#') // End of message
+    { 
+    break;
+    }
+  }
   return 0;
 }

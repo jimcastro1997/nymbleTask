@@ -12,7 +12,6 @@ import tkinter as tk
 from tkinter import messagebox
 import serial
 import time
-import threading
 
 # Function for Bits Per Second Calculation
 def calc_speed(start_time, bits_transferred):
@@ -44,7 +43,7 @@ def start_com():
         for char in message_ascii:
             ser.write(char.encode()) # Send Data
             send_speed = calc_speed(start_time, data_size_in_bits) # Calculating Bits/Sec
-            send_speed_label.config(text=f"Sending Speed: {send_speed:.2f} bits/second")
+            send_speed_label.config(text=f"Sending Speed: {send_speed:.2f} bits/second",fg="red")
             window.update()
 
         notification_label.config(text="DATA SENT - OK", fg="green")
@@ -64,12 +63,18 @@ def start_com():
                 received_data += char
                 data_size_received += len(char.encode()) * 8
                 receive_speed = calc_speed(start_time, data_size_received)
-                receive_speed_label.config(text=f"Receiving Speed: {receive_speed:.2f} bits/second")
+                receive_speed_label.config(text=f"Receiving Speed: {receive_speed:.2f} bits/second", fg="red")
                 window.update()
 
                 # Check End of Message
                 if char == "#":
                     break
+
+                # Check if EEPROM is Full
+                if char == "$":
+                    notification_label.config(text="EEPROM FULL", fg="red")
+                    window.update()
+                    return
 
         notification_label.config(text="DATA RECEIVED - OK", fg="green")
 
